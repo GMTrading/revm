@@ -220,6 +220,7 @@ impl Precompiles {
                 precompiles.extend([
                     // EIP-4844: Shard Blob Transactions
                     kzg_point_evaluation::POINT_EVALUATION,
+                    celo::celo::TRANSFER,
                 ]);
                 precompiles
             };
