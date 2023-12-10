@@ -191,6 +191,31 @@ impl JournaledState {
         Ok(())
     }
 
+    pub fn add_balance<DB: Database>(&mut self, to: &Address, balance: U256, db: &mut DB) -> Result<(), InstructionResult> {
+        self.load_account(*to, db)
+            .map_err(|_| InstructionResult::FatalExternalError)?;
+
+
+        // add balance to
+        let to_account = &mut self.state.get_mut(to).unwrap();
+        Self::touch_account(self.journal.last_mut().unwrap(), to, to_account);
+        let to_balance = &mut to_account.info.balance;
+        *to_balance = to_balance
+            .checked_add(balance)
+            .ok_or(InstructionResult::OverflowPayment)?;
+        // Overflow of U256 balance is not possible to happen on mainnet. We don't bother to return funds from from_acc.
+
+        self.journal
+            .last_mut()
+            .unwrap()
+            .push(JournalEntry::BalanceMint {
+                to: *to,
+                balance,
+            });
+
+        Ok(())
+    }
+
     /// Create account or return false if collision is detected.
     ///
     /// There are few steps done:
@@ -325,6 +350,10 @@ impl JournaledState {
                     // we don't need to check overflow and underflow when adding and subtracting the balance.
                     let from = state.get_mut(&from).unwrap();
                     from.info.balance += balance;
+                    let to = state.get_mut(&to).unwrap();
+                    to.info.balance -= balance;
+                }
+                JournalEntry::BalanceMint { to, balance } => {
                     let to = state.get_mut(&to).unwrap();
                     to.info.balance -= balance;
                 }
@@ -757,6 +786,14 @@ pub enum JournalEntry {
         to: Address,
         balance: U256,
     },
+    /// Mint balance to account
+    /// Action: Mint balance
+    /// Revert: Burn balance
+    BalanceMint {
+        to: Address,
+        balance: U256,
+    },
+
     /// Increment nonce
     /// Action: Increment nonce by one
     /// Revert: Decrement nonce by one

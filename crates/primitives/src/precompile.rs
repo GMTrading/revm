@@ -1,5 +1,6 @@
-use crate::Env;
+use crate::{Env, db::Database};
 use alloc::vec::Vec;
+use alloy_primitives::{Address, U256};
 use core::fmt;
 
 /// A precompile operation result.
@@ -9,6 +10,13 @@ pub type PrecompileResult = Result<(u64, Vec<u8>), PrecompileError>;
 
 pub type StandardPrecompileFn = fn(&[u8], u64) -> PrecompileResult;
 pub type EnvPrecompileFn = fn(&[u8], u64, env: &Env) -> PrecompileResult;
+pub type ExtPrecompileFn = fn(&[u8], u64, caller: Address, database: &mut dyn ExtPrecompileHost) -> PrecompileResult;
+
+pub trait ExtPrecompileHost {
+    fn transfer(&mut self, from: &Address, to: &Address, amount: U256) -> Result<(), PrecompileError>;
+    fn add_balance(&mut self, to: &Address, amount: U256) -> Result<(), PrecompileError>;
+    fn get_balance(&mut self, address: Address) -> Result<U256, PrecompileError>;
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum PrecompileError {
@@ -32,6 +40,9 @@ pub enum PrecompileError {
     BlobMismatchedVersion,
     /// The proof verification failed.
     BlobVerifyKzgProofFailed,
+
+    /// Custom
+    CustomError(String),
 }
 
 #[cfg(feature = "std")]
@@ -60,6 +71,7 @@ impl fmt::Display for PrecompileError {
             PrecompileError::BlobVerifyKzgProofFailed => {
                 write!(f, "verifying blob kzg proof failed")
             }
+            PrecompileError::CustomError(err) => write!(f, "{err}"),
         }
     }
 }

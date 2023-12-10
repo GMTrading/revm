@@ -18,6 +18,7 @@ pub mod kzg_point_evaluation;
 mod modexp;
 mod secp256k1;
 pub mod utilities;
+pub mod celo;
 
 use alloc::{boxed::Box, collections::BTreeMap, vec::Vec};
 use core::{fmt, hash::Hash};
@@ -89,6 +90,7 @@ impl Default for Precompiles {
 pub enum Precompile {
     Standard(StandardPrecompileFn),
     Env(EnvPrecompileFn),
+    Ext(ExtPrecompileFn),
 }
 
 impl fmt::Debug for Precompile {
@@ -96,6 +98,7 @@ impl fmt::Debug for Precompile {
         match self {
             Precompile::Standard(_) => f.write_str("Standard"),
             Precompile::Env(_) => f.write_str("Env"),
+            Precompile::Ext(_) => f.write_str("Ext"),
         }
     }
 }

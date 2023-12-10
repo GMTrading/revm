@@ -20,6 +20,7 @@ use crate::{
 };
 use alloc::{boxed::Box, sync::Arc, vec::Vec};
 use auto_impl::auto_impl;
+use precompile::{ExtPrecompileHost, Error};
 use core::{fmt, marker::PhantomData};
 
 #[cfg(feature = "optimism")]
@@ -669,6 +670,7 @@ impl<'a, GSPEC: Spec + 'static, DB: Database> EVMImpl<'a, GSPEC, DB> {
         let out = match precompile {
             Precompile::Standard(fun) => fun(input_data, gas.limit()),
             Precompile::Env(fun) => fun(input_data, gas.limit(), self.env()),
+            Precompile::Ext(fun) => fun(input_data, gas.limit(), inputs.context.caller, self),
         };
 
         match out {
@@ -935,6 +937,22 @@ impl<'a, GSPEC: Spec + 'static, DB: Database> Host for EVMImpl<'a, GSPEC, DB> {
         } else {
             (ret.result, ret.gas, ret.return_value)
         }
+    }
+}
+
+impl<'a, GSPEC: Spec + 'static, DB: Database> ExtPrecompileHost for EVMImpl<'a, GSPEC, DB> {
+    fn transfer(&mut self, from: &Address, to: &Address, amount: U256) -> Result<(), Error> {
+        self.data.journaled_state.transfer(from, to, amount, &mut self.data.db)
+            .map_err(|_| Error::CustomError("Transfer failed".to_string()))
+    }
+
+    fn add_balance(&mut self, to: &Address, amount: U256) -> Result<(), Error> {
+        self.data.journaled_state.add_balance(to, amount, &mut self.data.db)
+            .map_err(|_| Error::CustomError("Minting failed".to_string()))
+    }
+
+    fn get_balance(&mut self, address: Address) -> Result<U256, Error> {
+        self.balance(address).ok_or(Error::CustomError("Could not get balance".to_string())).map(|x| x.0)
     }
 }
 
