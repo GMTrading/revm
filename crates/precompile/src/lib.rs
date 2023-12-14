@@ -151,6 +151,7 @@ impl Precompiles {
                 hash::SHA256,
                 hash::RIPEMD160,
                 identity::FUN,
+                celo::celo::TRANSFER,
             ];
             inner.sort_unstable_by_key(|i| i.0);
             Box::new(Self { inner })
@@ -220,7 +221,6 @@ impl Precompiles {
                 precompiles.extend([
                     // EIP-4844: Shard Blob Transactions
                     kzg_point_evaluation::POINT_EVALUATION,
-                    celo::celo::TRANSFER,
                 ]);
                 precompiles
             };
