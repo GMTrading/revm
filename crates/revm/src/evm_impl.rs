@@ -942,17 +942,17 @@ impl<'a, GSPEC: Spec + 'static, DB: Database> Host for EVMImpl<'a, GSPEC, DB> {
 
 impl<'a, GSPEC: Spec + 'static, DB: Database> ExtPrecompileHost for EVMImpl<'a, GSPEC, DB> {
     fn transfer(&mut self, from: &Address, to: &Address, amount: U256) -> Result<(), Error> {
-        self.data.journaled_state.transfer(from, to, amount, &mut self.data.db)
+        self.data.journaled_state.transfer(from, to, amount, self.data.db)
             .map_err(|_| Error::CustomError("Transfer failed".to_string()))
     }
 
     fn add_balance(&mut self, to: &Address, amount: U256) -> Result<(), Error> {
-        self.data.journaled_state.add_balance(to, amount, &mut self.data.db)
+        self.data.journaled_state.add_balance(to, amount, self.data.db)
             .map_err(|_| Error::CustomError("Minting failed".to_string()))
     }
 
     fn get_balance(&mut self, address: Address) -> Result<U256, Error> {
-        self.balance(address).ok_or(Error::CustomError("Could not get balance".to_string())).map(|x| x.0)
+        self.data.balance(address).ok_or(Error::CustomError("Could not get balance".to_string())).map(|x| x.0)
     }
 }
 
